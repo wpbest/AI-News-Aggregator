@@ -42,7 +42,7 @@ Rank articles from most relevant (rank 1) to least relevant. Ensure each article
 class CuratorAgent:
     def __init__(self, user_profile: dict):
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        self.model = "gpt-4.1"
+        self.model = "gpt-5.1"
         self.user_profile = user_profile
         self.system_prompt = self._build_system_prompt()
 
