@@ -240,4 +240,9 @@ def send_email_to_self(subject: str, body: str):
 
 
 if __name__ == "__main__":
-    send_email_to_self("Test from Python", "Hello from my script.")
+    print(f"Sending test email to {MY_EMAIL}...")
+    try:
+        send_email_to_self("Test from Python", "Hello from my script.")
+        print("✅ Email sent successfully!")
+    except Exception as e:
+        print(f"❌ Failed to send email: {e}")

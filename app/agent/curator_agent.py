@@ -1,6 +1,6 @@
 import os
 from typing import List
-from openai import OpenAI
+from google import genai
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
@@ -41,8 +41,9 @@ Rank articles from most relevant (rank 1) to least relevant. Ensure each article
 
 class CuratorAgent:
     def __init__(self, user_profile: dict):
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        self.model = "gpt-5.1"
+        # 2026 unified google-genai client
+        self.client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+        self.model_name = "gemini-2.5-flash-lite"
         self.user_profile = user_profile
         self.system_prompt = self._build_system_prompt()
 
@@ -80,16 +81,21 @@ Preferences:
 Provide a relevance score (0.0-10.0) and rank (1-{len(digests)}) for each article, ordered from most to least relevant."""
 
         try:
-            response = self.client.responses.parse(
-                model=self.model,
-                instructions=self.system_prompt,
-                temperature=0.3,
-                input=user_prompt,
-                text_format=RankedDigestList
+            # Modern 2026 generate_content call
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=user_prompt,
+                config={
+                    "system_instruction": self.system_prompt,
+                    "response_mime_type": "application/json",
+                    "response_schema": RankedDigestList,
+                    "temperature": 0.3,
+                }
             )
             
-            ranked_list = response.output_parsed
+            # Use structured parsing
+            ranked_list = response.parsed
             return ranked_list.articles if ranked_list else []
         except Exception as e:
-            print(f"Error ranking digests: {e}")
+            print(f"Error ranking 2026 Gemini digests: {e}")
             return []

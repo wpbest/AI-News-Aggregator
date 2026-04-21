@@ -1,6 +1,8 @@
+version: '3.8'
+
 services:
   postgres:
-    image: postgres:17
+    image: pgvector/pgvector:pg17
     container_name: ai-news-aggregator-db
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -10,11 +12,25 @@ services:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  db-init:
+    image: postgres:17
+    container_name: ai-news-aggregator-db-init
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-ai_news_aggregator}
+    entrypoint: ["bash","-c","until pg_isready -h postgres -U ${POSTGRES_USER:-postgres}; do sleep 1; done; psql -h postgres -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-ai_news_aggregator} -c \"CREATE EXTENSION IF NOT EXISTS vector;\""]
+    restart: "no"
 
 volumes:
   postgres_data:

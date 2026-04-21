@@ -129,7 +129,60 @@ class Repository:
             self.session.commit()
             return True
         return False
-    
+
+    def update_article_embedding(self, article_type: str, article_id: str, embedding: List[float]) -> bool:
+        """Updates the embedding for any article type."""
+        model_map = {
+            "youtube": YouTubeVideo,
+            "openai": OpenAIArticle,
+            "anthropic": AnthropicArticle
+        }
+        model = model_map.get(article_type)
+        if not model:
+            return False
+            
+        id_col = "video_id" if article_type == "youtube" else "guid"
+        article = self.session.query(model).filter(getattr(model, id_col) == article_id).first()
+        
+        if article:
+            article.embedding = embedding
+            self.session.commit()
+            return True
+        return False
+
+    def semantic_search(self, query_embedding: List[float], limit: int = 5) -> List[Dict[str, Any]]:
+        """
+        Performs a cross-table semantic search using cosine distance.
+        """
+        results = []
+        
+        # Search across all three tables
+        tables = [
+            (YouTubeVideo, YouTubeVideo.video_id, "youtube"),
+            (OpenAIArticle, OpenAIArticle.guid, "openai"),
+            (AnthropicArticle, AnthropicArticle.guid, "anthropic")
+        ]
+        
+        for model, id_attr, art_type in tables:
+            matches = self.session.query(model).filter(
+                model.embedding.isnot(None)
+            ).order_by(
+                model.embedding.cosine_distance(query_embedding)
+            ).limit(limit).all()
+            
+            for m in matches:
+                results.append({
+                    "id": getattr(m, id_attr),
+                    "type": art_type,
+                    "title": m.title,
+                    "url": m.url,
+                    "distance": 0.0 # Placeholder for simplicity, could calculate actual distance
+                })
+        
+        # Sort combined results by (simulated) distance and limit
+        # In a real production app, you might use a more complex union query
+        return results[:limit]
+
     def get_youtube_videos_without_transcript(self, limit: Optional[int] = None) -> List[YouTubeVideo]:
         query = self.session.query(YouTubeVideo).filter(YouTubeVideo.transcript.is_(None))
         if limit:

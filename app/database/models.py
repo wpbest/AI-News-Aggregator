@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional
 from sqlalchemy import Column, String, DateTime, Text
 from sqlalchemy.orm import declarative_base
+from pgvector.sqlalchemy import Vector
 
 Base = declarative_base()
 
@@ -16,6 +17,7 @@ class YouTubeVideo(Base):
     published_at = Column(DateTime, nullable=False)
     description = Column(Text)
     transcript = Column(Text, nullable=True)
+    embedding = Column(Vector(768), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -28,6 +30,7 @@ class OpenAIArticle(Base):
     description = Column(Text)
     published_at = Column(DateTime, nullable=False)
     category = Column(String, nullable=True)
+    embedding = Column(Vector(768), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -41,6 +44,7 @@ class AnthropicArticle(Base):
     published_at = Column(DateTime, nullable=False)
     category = Column(String, nullable=True)
     markdown = Column(Text, nullable=True)
+    embedding = Column(Vector(768), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 

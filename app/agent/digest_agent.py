@@ -1,6 +1,6 @@
 import os
 from typing import Optional
-from openai import OpenAI
+from google import genai
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
@@ -25,24 +25,28 @@ Guidelines:
 
 class DigestAgent:
     def __init__(self):
-        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        self.model = "gpt-4o-mini"
-        self.system_prompt = PROMPT
+        # 2026 unified google-genai client
+        self.client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+        self.model_name = "gemini-2.5-flash-lite"
 
     def generate_digest(self, title: str, content: str, article_type: str) -> Optional[DigestOutput]:
         try:
-            user_prompt = f"Create a digest for this {article_type}: \n Title: {title} \n Content: {content[:8000]}"
+            user_prompt = f"Create a digest for this {article_type}: \n Title: {title} \n Content: {content[:30000]}"
 
-            response = self.client.responses.parse(
-                model=self.model,
-                instructions=self.system_prompt,
-                temperature=0.7,
-                input=user_prompt,
-                text_format=DigestOutput
+            # Modern 2026 generate_content call
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=user_prompt,
+                config={
+                    "system_instruction": PROMPT,
+                    "response_mime_type": "application/json",
+                    "response_schema": DigestOutput,
+                }
             )
             
-            return response.output_parsed
+            # The new SDK parses the JSON into the Pydantic model automatically 
+            # if provided as a response_schema
+            return response.parsed
         except Exception as e:
-            print(f"Error generating digest: {e}")
+            print(f"Error generating 2026 Gemini digest: {e}")
             return None
-
