@@ -39,10 +39,19 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install dependencies
+      - name: Install dependencies (from pyproject)
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e .
+          python -m pip install --upgrade pip setuptools wheel
+          python - <<'PY'
+import tomllib
+with open('pyproject.toml','rb') as f:
+    data = tomllib.load(f)
+reqs = data.get('project', {}).get('dependencies', [])
+with open('requirements.txt','w') as out:
+    out.write('\n'.join(reqs))
+print('Wrote requirements.txt')
+PY
+          python -m pip install -r requirements.txt
 
       - name: Run pipeline
         env:
@@ -51,5 +60,6 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: ai_news_aggregator
+          PYTHONPATH: ${{ github.workspace }}
         run: |
           python main.py 24 10
